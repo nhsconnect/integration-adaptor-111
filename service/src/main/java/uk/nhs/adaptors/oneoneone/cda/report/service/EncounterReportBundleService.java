@@ -9,29 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.xmlbeans.XmlException;
-import org.hl7.fhir.dstu3.model.Appointment;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CarePlan;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Composition;
-import org.hl7.fhir.dstu3.model.Condition;
-import org.hl7.fhir.dstu3.model.Consent;
-import org.hl7.fhir.dstu3.model.Encounter;
-import org.hl7.fhir.dstu3.model.Group;
-import org.hl7.fhir.dstu3.model.HealthcareService;
-import org.hl7.fhir.dstu3.model.Identifier;
-import org.hl7.fhir.dstu3.model.ListResource;
-import org.hl7.fhir.dstu3.model.Location;
-import org.hl7.fhir.dstu3.model.Observation;
-import org.hl7.fhir.dstu3.model.Organization;
-import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.ProcedureRequest;
-import org.hl7.fhir.dstu3.model.Questionnaire;
-import org.hl7.fhir.dstu3.model.QuestionnaireResponse;
-import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.ReferralRequest;
-import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.*;
 import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
@@ -47,6 +25,7 @@ import uk.nhs.adaptors.oneoneone.cda.report.mapper.ObservationMapper;
 import uk.nhs.adaptors.oneoneone.cda.report.mapper.PractitionerRoleMapper;
 import uk.nhs.adaptors.oneoneone.cda.report.mapper.ReferralRequestMapper;
 import uk.nhs.adaptors.oneoneone.cda.report.util.PathwayUtil;
+import uk.nhs.connect.iucds.cda.ucr.CE;
 import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01ClinicalDocument1;
 
 @Component
@@ -92,7 +71,9 @@ public class EncounterReportBundleService {
             referralRequest, authorPractitionerRoles);
         List<Observation> observations = observationMapper.mapObservations(clinicalDocument, encounter);
 
-        addEntry(bundle, messageHeaderService.createMessageHeader(header));
+        CE dispositionCode = getDispositionCode(clinicalDocument);
+
+        addEntry(bundle, messageHeaderService.createMessageHeader(header,dispositionCode ));
         addEncounter(bundle, encounter);
         addServiceProvider(bundle, encounter);
         addParticipants(bundle, encounter);
@@ -114,7 +95,18 @@ public class EncounterReportBundleService {
 
         return bundle;
     }
-
+    private CE getDispositionCode(POCDMT000002UK01ClinicalDocument1 clinicalDocument) {
+        CE dischargeCode = null;
+        if (clinicalDocument.isSetComponentOf()) {
+            if (clinicalDocument.getComponentOf().getEncompassingEncounter() != null) {
+                if (clinicalDocument.getComponentOf().getEncompassingEncounter().isSetDischargeDispositionCode()) {
+                    Coding coding = new Coding();
+                    dischargeCode = clinicalDocument.getComponentOf().getEncompassingEncounter().getDischargeDispositionCode();
+                }
+            }
+        }
+        return dischargeCode;
+    }
     private Bundle createBundle(POCDMT000002UK01ClinicalDocument1 clinicalDocument) {
         Bundle bundle = new Bundle();
         bundle.setType(MESSAGE);

@@ -31,7 +31,6 @@ public class ItkValidator {
     private static final List<String> PROFILE_IDS = asList("urn:nhs-en:profile:nhs111CDADocument-v2-0",
         "urn:nhs-en:profile:nullificationDocument-v5-0", "urn:nhs-en:profile:IntegratedUrgentCareCDADocument-v3-1",
         "urn:nhs-en:profile:nhs111CDADocument-v3-1");
-    private static final String AUDIT_IDENTITY = "urn:nhs-uk:identity:ods:5L399";
     private static final String AUDIT_IDENTITY_ID_XPATH = "//*[local-name()='id']";
 
     public void checkItkConformance(Map<ReportElement, Element> report) throws SoapClientException {
@@ -41,17 +40,6 @@ public class ItkValidator {
         checkTrackingIdExists(itkHeader);
         checkSoapAndItkService(report.get(SOAP_HEADER), itkHeader);
         checkPayloadAndManifest(itkHeader, report.get(ITK_PAYLOADS));
-        checkAuditIdentity(itkHeader);
-    }
-
-    private void checkAuditIdentity(Element itkHeader) throws SoapClientException {
-        Node auditNode = itkHeader.selectSingleNode(ITK_AUDIT_IDENTITY_XPATH);
-        Node auditIdNode = auditNode.selectSingleNode(AUDIT_IDENTITY_ID_XPATH);
-        String auditIdentity = ((Element) auditIdNode).attribute("uri").getValue();
-
-        if (!StringUtils.equals(AUDIT_IDENTITY, auditIdentity)) {
-            throw new SoapClientException(SOAP_VALIDATION_FAILED_MSG, "Invalid Audit Identity value: " + auditIdentity);
-        }
     }
 
     private void checkPayloadAndManifest(Element itkHeader, Element itkPayloads) throws SoapClientException {

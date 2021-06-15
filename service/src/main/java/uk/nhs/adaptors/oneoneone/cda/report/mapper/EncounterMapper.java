@@ -12,29 +12,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.hl7.fhir.dstu3.model.Encounter;
+import org.apache.catalina.Session;
+import org.hl7.fhir.dstu3.model.*;
 import org.hl7.fhir.dstu3.model.Encounter.EncounterLocationComponent;
 import org.hl7.fhir.dstu3.model.Encounter.EncounterParticipantComponent;
-import org.hl7.fhir.dstu3.model.Group;
-import org.hl7.fhir.dstu3.model.Narrative;
-import org.hl7.fhir.dstu3.model.Organization;
-import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.Period;
-import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.Reference;
 import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
 import uk.nhs.adaptors.oneoneone.cda.report.service.AppointmentService;
 import uk.nhs.adaptors.oneoneone.cda.report.util.NodeUtil;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01ClinicalDocument1;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01Component3;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01Encounter;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01Entry;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01Informant12;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01PatientRole;
-import uk.nhs.connect.iucds.cda.ucr.POCDMT000002UK01Section;
-import uk.nhs.connect.iucds.cda.ucr.TS;
+import uk.nhs.connect.iucds.cda.ucr.*;
 
 @Component
 @AllArgsConstructor
@@ -67,6 +54,7 @@ public class EncounterMapper {
     public Encounter mapEncounter(POCDMT000002UK01ClinicalDocument1 clinicalDocument, List<PractitionerRole> practitionerRoles) {
         Encounter encounter = new Encounter();
         encounter.setIdElement(newRandomUuid());
+        setIdentifier(encounter, clinicalDocument);
         encounter.setStatus(FINISHED);
         encounter.setLocation(getLocationComponents(clinicalDocument));
         encounter.setPeriod(getPeriod(clinicalDocument));
@@ -76,6 +64,28 @@ public class EncounterMapper {
         setAppointment(encounter, clinicalDocument);
         setEncounterReasonAndType(encounter, clinicalDocument);
         return encounter;
+    }
+
+    private void setIdentifier(Encounter encounter, POCDMT000002UK01ClinicalDocument1 clinicalDocument) {
+        if (clinicalDocument.isSetComponentOf()) {
+            POCDMT000002UK01Component1 componentOf = clinicalDocument.getComponentOf();
+            POCDMT000002UK01EncompassingEncounter ITKEncounter = componentOf.getEncompassingEncounter();
+            II[] idArray = ITKEncounter.getIdArray();
+
+            List<Identifier> ids = new ArrayList<>();
+
+            for (II id : idArray) {
+                if (id.isSetRoot()) {
+                    Identifier destId = new Identifier();
+                    destId.setId(id.getRoot());
+                    destId.setValue(id.getExtension());
+
+                    ids.add(destId);
+
+                }
+            }
+            encounter.setIdentifier(ids);
+        }
     }
 
     private List<EncounterLocationComponent> getLocationComponents(POCDMT000002UK01ClinicalDocument1 clinicalDocument1) {

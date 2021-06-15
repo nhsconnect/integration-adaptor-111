@@ -47,7 +47,7 @@ public class MessageHeaderServiceTest {
         itkReportHeader.setSpecKey(SPECIFICATION_KEY);
         itkReportHeader.setSpecVal(SPECIFICATION_VALUE);
         itkReportHeader.setAddressList(Arrays.asList(ADDRESS));
-        MessageHeader messageHeader = messageHeaderService.createMessageHeader(itkReportHeader);
+        MessageHeader messageHeader = messageHeaderService.createMessageHeader(itkReportHeader,null);
 
         assertThat(messageHeader.getId()).isNotEmpty();
         Coding event = messageHeader.getEvent();
